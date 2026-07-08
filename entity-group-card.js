@@ -14,7 +14,7 @@
  * Author: Jason Crouch — MIT. MDI icon paths © Pictogrammers (Apache 2.0).
  */
 
-const ENTITY_GROUP_CARD_VERSION = '1.1.1';
+const ENTITY_GROUP_CARD_VERSION = '1.2.0';
 
 console.info(
   `%c ENTITY-GROUP-CARD %c v${ENTITY_GROUP_CARD_VERSION} `,
@@ -424,7 +424,8 @@ class EntityGroupCardEditor extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    if (this._genForm) this._genForm.hass = hass;
+    if (this._styleForm) this._styleForm.hass = hass;
+    if (this._sourceForm) this._sourceForm.hass = hass;
     if (this._deviceForm) this._deviceForm.hass = hass;
     if (this._addForm) this._addForm.hass = hass;
     (this._rowForms || []).forEach((f) => (f.hass = hass));
@@ -490,23 +491,12 @@ class EntityGroupCardEditor extends HTMLElement {
     };
   }
 
-  _genSchema() {
+  // Top section: everything about how the card looks.
+  _styleSchema() {
     const cfg = this._config || {};
     const schema = [
       { name: 'title', selector: { text: {} } },
       { name: 'icon', selector: { icon: {} } },
-      {
-        name: 'source',
-        selector: {
-          select: {
-            mode: 'dropdown',
-            options: [
-              { value: 'device', label: 'Device — choose a device' },
-              { value: 'entities', label: 'Entity — pick entities' },
-            ],
-          },
-        },
-      },
       {
         name: 'layout',
         selector: {
@@ -551,6 +541,24 @@ class EntityGroupCardEditor extends HTMLElement {
     return schema;
   }
 
+  // Bottom section: where the entities come from.
+  _sourceSchema() {
+    return [
+      {
+        name: 'source',
+        selector: {
+          select: {
+            mode: 'dropdown',
+            options: [
+              { value: 'device', label: 'Device — choose a device' },
+              { value: 'entities', label: 'Entity — pick entities' },
+            ],
+          },
+        },
+      },
+    ];
+  }
+
   async _loadDeviceEntities(device) {
     if (!this._hass || !device) return;
     try {
@@ -574,16 +582,16 @@ class EntityGroupCardEditor extends HTMLElement {
       const style = document.createElement('style');
       style.textContent = `
         .egc-ed { display: flex; flex-direction: column; gap: 12px; }
-        .egc-sec-title { font-weight: 500; margin: 4px 0 0; }
-        .egc-hint { color: var(--secondary-text-color); font-size: 12px; margin: -4px 0 4px; }
-        .egc-row { display: flex; align-items: flex-start; gap: 6px; border: 1px solid var(--divider-color, #e0e0e0); border-radius: 8px; padding: 8px; }
-        .egc-row ha-form { flex: 1 1 auto; }
-        .egc-row-actions { display: flex; flex-direction: column; gap: 2px; }
-        .egc-icon-btn { border: none; background: none; cursor: pointer; color: var(--secondary-text-color); border-radius: 6px; width: 30px; height: 26px; }
+        .egc-sec { border: 1px solid var(--divider-color, #e0e0e0); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+        .egc-sec-title { font-weight: 500; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--secondary-text-color); }
+        .egc-hint { color: var(--secondary-text-color); font-size: 12px; margin: -6px 0 2px; }
+        .egc-row { display: flex; align-items: flex-start; gap: 8px; border: 1px solid var(--divider-color, #e0e0e0); border-radius: 8px; padding: 10px; }
+        .egc-row ha-form { flex: 1 1 auto; min-width: 0; display: block; }
+        .egc-row-actions { display: flex; flex-direction: column; gap: 2px; flex: 0 0 auto; }
+        .egc-icon-btn { border: none; background: none; cursor: pointer; color: var(--secondary-text-color); border-radius: 6px; width: 30px; height: 26px; font-size: 12px; }
         .egc-icon-btn:hover { background: var(--secondary-background-color, #eee); color: var(--primary-text-color); }
-        .egc-btn { align-self: flex-start; border: 1px solid var(--primary-color); color: var(--primary-color); background: none; border-radius: 18px; padding: 6px 14px; cursor: pointer; font-family: inherit; font-size: 14px; }
+        .egc-btn { align-self: flex-start; border: 1px solid var(--primary-color); color: var(--primary-color); background: none; border-radius: 18px; padding: 7px 16px; cursor: pointer; font-family: inherit; font-size: 14px; }
         .egc-btn:hover { background: rgba(127,127,127,0.08); }
-        .egc-add { border-top: 1px dashed var(--divider-color, #e0e0e0); padding-top: 10px; }
       `;
       this._container.appendChild(style);
 
@@ -592,52 +600,76 @@ class EntityGroupCardEditor extends HTMLElement {
       this._container.appendChild(this._inner);
       this.appendChild(this._container);
 
-      // General options form
-      this._genForm = document.createElement('ha-form');
-      this._genForm.computeLabel = (s) => this._labels()[s.name] || s.name;
-      this._genForm.addEventListener('value-changed', (ev) => {
+      // ---- Style section ----
+      const styleSec = document.createElement('div');
+      styleSec.className = 'egc-sec';
+      const styleTitle = document.createElement('div');
+      styleTitle.className = 'egc-sec-title';
+      styleTitle.textContent = 'Style';
+      styleSec.appendChild(styleTitle);
+
+      this._styleForm = document.createElement('ha-form');
+      this._styleForm.computeLabel = (s) => this._labels()[s.name] || s.name;
+      this._styleForm.addEventListener('value-changed', (ev) => {
         ev.stopPropagation();
         const prev = this._config || {};
         const next = Object.assign({}, prev, ev.detail.value);
-        // Only rebuild the DOM when the structure changes (which fields exist).
-        // Plain value edits (title, theme, colours) must not rebuild, or the
-        // focused input loses focus every keystroke.
-        const structural =
-          next.source !== prev.source || next.layout !== prev.layout || next.style !== prev.style;
+        const structural = next.layout !== prev.layout || next.style !== prev.style;
         this._emit(next);
         if (structural) this._render();
       });
-      this._inner.appendChild(this._genForm);
+      styleSec.appendChild(this._styleForm);
+      this._inner.appendChild(styleSec);
 
-      // Device picker section
+      // ---- Content section ----
+      const contentSec = document.createElement('div');
+      contentSec.className = 'egc-sec';
+      const contentTitle = document.createElement('div');
+      contentTitle.className = 'egc-sec-title';
+      contentTitle.textContent = 'Content';
+      contentSec.appendChild(contentTitle);
+
+      this._sourceForm = document.createElement('ha-form');
+      this._sourceForm.computeLabel = (s) => this._labels()[s.name] || s.name;
+      this._sourceForm.addEventListener('value-changed', (ev) => {
+        ev.stopPropagation();
+        const prev = this._config || {};
+        const next = Object.assign({}, prev, ev.detail.value);
+        const structural = next.source !== prev.source;
+        this._emit(next);
+        if (structural) this._render();
+      });
+      contentSec.appendChild(this._sourceForm);
+
       this._deviceWrap = document.createElement('div');
-      this._inner.appendChild(this._deviceWrap);
-
-      // Entities section
-      this._entTitle = document.createElement('div');
-      this._entTitle.className = 'egc-sec-title';
-      this._entTitle.textContent = 'Entities';
-      this._inner.appendChild(this._entTitle);
+      contentSec.appendChild(this._deviceWrap);
 
       this._entHint = document.createElement('div');
       this._entHint.className = 'egc-hint';
-      this._inner.appendChild(this._entHint);
+      contentSec.appendChild(this._entHint);
 
       this._rowsWrap = document.createElement('div');
       this._rowsWrap.className = 'egc-ed';
-      this._inner.appendChild(this._rowsWrap);
+      contentSec.appendChild(this._rowsWrap);
 
       this._addWrap = document.createElement('div');
-      this._addWrap.className = 'egc-add';
-      this._inner.appendChild(this._addWrap);
+      contentSec.appendChild(this._addWrap);
+
+      this._inner.appendChild(contentSec);
     }
 
-    if (this._hass) this._genForm.hass = this._hass;
-    this._genForm.schema = this._genSchema();
-    this._genForm.data = cfg;
+    if (this._hass) {
+      this._styleForm.hass = this._hass;
+      this._sourceForm.hass = this._hass;
+    }
+    this._styleForm.schema = this._styleSchema();
+    this._styleForm.data = cfg;
+    this._sourceForm.schema = this._sourceSchema();
+    this._sourceForm.data = { source: cfg.source || 'device' };
 
     this._renderDeviceSection();
     this._renderRows();
+    this._renderAdd();
     this._built = true;
     this._lastConfig = cfg;
   }
@@ -678,12 +710,16 @@ class EntityGroupCardEditor extends HTMLElement {
     }
   }
 
+  _rowComputeLabel(s) {
+    return { entity: 'Entity', name: 'Name', icon: 'Entity icon (optional)' }[s.name] || s.name;
+  }
+
   _renderRows() {
     const rows = this._rows(this._config);
     this._entHint.textContent =
-      this._config.source === 'device'
-        ? 'Auto-filled from the device. Remove any you don’t want, rename, reorder, or set a custom icon.'
-        : 'Add entities, then rename, reorder, or set a custom icon per entity.';
+      (this._config.source === 'device'
+        ? 'Entities — auto-filled from the device. Remove any you don’t want, rename, reorder, or set a custom icon.'
+        : 'Entities — add entities, then rename, reorder, or set a custom icon per entity.');
 
     this._rowsWrap.innerHTML = '';
     this._rowForms = [];
@@ -693,14 +729,16 @@ class EntityGroupCardEditor extends HTMLElement {
       rowEl.className = 'egc-row';
 
       const f = document.createElement('ha-form');
-      f.computeLabel = (s) => this._labels()[s.name] || s.name;
+      f.computeLabel = (s) => this._rowComputeLabel(s);
       if (this._hass) f.hass = this._hass;
+      // Entity on its own line, then Name + Entity icon side by side so the
+      // fields line up.
       f.schema = [
+        { name: 'entity', selector: { entity: {} } },
         {
           type: 'grid',
           name: '',
           schema: [
-            { name: 'entity', selector: { entity: {} } },
             { name: 'name', selector: { text: {} } },
             { name: 'icon', selector: { icon: {} } },
           ],
@@ -729,32 +767,41 @@ class EntityGroupCardEditor extends HTMLElement {
         b.addEventListener('click', fn);
         return b;
       };
-      actions.appendChild(
-        mk('&#9650;', 'Move up', () => this._move(i, -1))
-      );
-      actions.appendChild(
-        mk('&#9660;', 'Move down', () => this._move(i, 1))
-      );
-      actions.appendChild(
-        mk('&#10005;', 'Remove', () => this._remove(i))
-      );
+      actions.appendChild(mk('&#9650;', 'Move up', () => this._move(i, -1)));
+      actions.appendChild(mk('&#9660;', 'Move down', () => this._move(i, 1)));
+      actions.appendChild(mk('&#10005;', 'Remove', () => this._remove(i)));
       rowEl.appendChild(actions);
       this._rowsWrap.appendChild(rowEl);
     });
+  }
 
-    // Add-entity picker
+  _renderAdd() {
     this._addWrap.innerHTML = '';
+    const btn = document.createElement('button');
+    btn.className = 'egc-btn';
+    btn.textContent = this._showAdd ? '✕ Cancel' : '＋ Add entity';
+    btn.addEventListener('click', () => {
+      this._showAdd = !this._showAdd;
+      this._renderAdd();
+    });
+    this._addWrap.appendChild(btn);
+
+    if (!this._showAdd) return;
+
     this._addForm = document.createElement('ha-form');
-    this._addForm.computeLabel = () => 'Add an entity';
+    this._addForm.computeLabel = () => 'Pick an entity to add';
     if (this._hass) this._addForm.hass = this._hass;
     this._addForm.schema = [{ name: 'entity', selector: { entity: {} } }];
     this._addForm.data = { entity: '' };
+    this._addForm.style.display = 'block';
+    this._addForm.style.marginTop = '10px';
     this._addForm.addEventListener('value-changed', (ev) => {
       ev.stopPropagation();
       const id = ev.detail.value.entity;
       if (!id) return;
       const list = this._rows(this._config).slice();
       list.push({ entity: id });
+      this._showAdd = false;
       this._emit(Object.assign({}, this._config, { entities: list }));
       this._render();
     });
@@ -781,7 +828,8 @@ class EntityGroupCardEditor extends HTMLElement {
 
   _refreshData() {
     const cfg = this._config || {};
-    if (this._genForm) this._genForm.data = cfg;
+    if (this._styleForm) this._styleForm.data = cfg;
+    if (this._sourceForm) this._sourceForm.data = { source: cfg.source || 'device' };
     const rows = this._rows(cfg);
     (this._rowForms || []).forEach((f, i) => {
       const r = rows[i];
