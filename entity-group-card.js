@@ -14,7 +14,7 @@
  * Author: Jason Crouch — MIT. MDI icon paths © Pictogrammers (Apache 2.0).
  */
 
-const ENTITY_GROUP_CARD_VERSION = '1.3.1';
+const ENTITY_GROUP_CARD_VERSION = '1.3.2';
 
 console.info(
   `%c ENTITY-GROUP-CARD %c v${ENTITY_GROUP_CARD_VERSION} `,
@@ -186,8 +186,17 @@ class EntityGroupCard extends HTMLElement {
     if (domain === 'update') {
       return state === 'on' ? 'Update available' : 'Up-to-date';
     }
+    // Round long decimals to 2 places so values stay compact (e.g. 56.6789 ->
+    // 56.67), trimming trailing zeros. Integers and short decimals are left as-is.
+    const round2 = (s) => {
+      const n = Number(s);
+      if (s === '' || !isFinite(n)) return s;
+      return String(Math.round(n * 100) / 100);
+    };
+
     const unit = attrs.unit_of_measurement;
-    if (unit) return `${state}${unit === '%' ? '' : ' '}${unit}`;
+    if (unit) return `${round2(state)}${unit === '%' ? '' : ' '}${unit}`;
+    if (/^-?\d*\.?\d+$/.test(state)) return round2(state);
 
     // Non-numeric text states: tidy up snake_case.
     if (/^[a-z0-9_]+$/.test(state)) return titleWords(state);
