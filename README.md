@@ -1,4 +1,4 @@
-# Origami Device & Entity Card
+# Origami Entity Card
 
 One sheet of paper, folded into countless shapes — that is the idea. A
 clean, GUI-driven Lovelace card that groups a device's entities, or any
@@ -39,7 +39,7 @@ Part of the **origami** family of flexible, general-purpose Home Assistant cards
 
 1. HACS → three-dot menu → **Custom repositories**.
 2. Add `https://github.com/mycrouch/origami-entity-card`, category **Dashboard**.
-3. Install **Origami Device & Entity Card**, then hard-refresh the browser.
+3. Install **Origami Entity Card**, then hard-refresh the browser.
 
 ### Manual
 
@@ -52,7 +52,7 @@ type: module
 
 ## Configuration
 
-Add the card from the picker ("Origami Device & Entity Card") and use the visual editor — every
+Add the card from the picker ("Origami Entity Card") and use the visual editor — every
 option is exposed there. YAML is fully supported too:
 
 ```yaml
@@ -112,7 +112,7 @@ picker — so they sit together neatly on one dashboard. Pair any of them with
 
 | Card | What it is |
 | --- | --- |
-| **Origami Device & Entity Card** (this card) | Group any device's entities as a row list or chip grid |
+| **Origami Entity Card** (this card) | Group any device's entities as a row list or chip grid |
 | [pro-v-weather-card](https://github.com/mycrouch/pro-v-weather-card) | Weather-station console — clock, moon, forecast, UV, solar, wind |
 | [weather-station-card](https://github.com/mycrouch/weather-station-card) | LCD-console weather station with backlight themes |
 | [airtouch-card](https://github.com/mycrouch/airtouch-card) | AirTouch 4/5 AC + zone control |

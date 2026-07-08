@@ -14,7 +14,7 @@
  * Author: Jason Crouch — MIT. MDI icon paths © Pictogrammers (Apache 2.0).
  */
 
-const ORIGAMI_ENTITY_CARD_VERSION = '1.5.0';
+const ORIGAMI_ENTITY_CARD_VERSION = '1.5.1';
 
 console.info(
   `%c ORIGAMI-ENTITY-CARD %c v${ORIGAMI_ENTITY_CARD_VERSION} `,
@@ -879,7 +879,7 @@ customElements.define('origami-entity-card-editor', OrigamiEntityCardEditor);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'origami-entity-card',
-  name: 'Origami Device & Entity Card',
+  name: 'Origami Entity Card',
   preview: true,
   description:
     'Clean, GUI-driven card that groups a device’s entities (or a hand-picked list) as a labelled row-list or compact chip-grid, with default / per-card-theme / custom-gradient backgrounds.',
