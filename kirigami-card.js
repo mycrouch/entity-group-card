@@ -14,7 +14,7 @@
  * Author: Jason Crouch — MIT. MDI icon paths © Pictogrammers (Apache 2.0).
  */
 
-const KIRIGAMI_CARD_VERSION = '1.4.0';
+const KIRIGAMI_CARD_VERSION = '1.4.1';
 
 console.info(
   `%c KIRIGAMI-CARD %c v${KIRIGAMI_CARD_VERSION} `,
@@ -856,15 +856,6 @@ class KirigamiCardEditor extends HTMLElement {
 }
 
 customElements.define('kirigami-card-editor', KirigamiCardEditor);
-
-// Back-compat: this card was first published as "entity-group-card". Keep the
-// old element names working so existing dashboards don't break after the rename.
-if (!customElements.get('entity-group-card')) {
-  customElements.define('entity-group-card', class extends KirigamiCard {});
-}
-if (!customElements.get('entity-group-card-editor')) {
-  customElements.define('entity-group-card-editor', class extends KirigamiCardEditor {});
-}
 
 // ---------------------------------------------------------------------------
 // Register in the card picker

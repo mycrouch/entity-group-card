@@ -100,8 +100,8 @@ background_end: "#0d2b45"
 | `dark_text` | boolean | `false` | Use dark text for light gradients. |
 | `show_header` | boolean | `true` | Show/hide the header row. |
 
-> Previously published as **entity-group-card**; the old `custom:entity-group-card`
-> type still works as an alias, so existing dashboards keep rendering.
+> Previously published as **entity-group-card**. If you used an early build,
+> change your cards to `type: custom:kirigami-card`.
 
 ## The mycrouch card collection
 
