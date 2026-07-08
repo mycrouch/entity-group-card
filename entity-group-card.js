@@ -14,7 +14,7 @@
  * Author: Jason Crouch — MIT. MDI icon paths © Pictogrammers (Apache 2.0).
  */
 
-const ENTITY_GROUP_CARD_VERSION = '1.0.0';
+const ENTITY_GROUP_CARD_VERSION = '1.0.1';
 
 console.info(
   `%c ENTITY-GROUP-CARD %c v${ENTITY_GROUP_CARD_VERSION} `,
@@ -312,9 +312,15 @@ class EntityGroupCard extends HTMLElement {
       ? `grid-template-columns: repeat(${columns}, 1fr);`
       : `grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));`;
 
-    this.innerHTML = `
+    // Render into a shadow root so each card's <style> (and its ha-card
+    // background) is scoped to this instance. In the light DOM a bare
+    // `ha-card { background }` rule leaks to every card on the page — the last
+    // one rendered would win, so all cards ended up the same colour.
+    if (!this._root) this._root = this.attachShadow({ mode: 'open' });
+    this._root.innerHTML = `
       <ha-card>
         <style>
+          :host { display: block; }
           ha-card {
             ${pal.cardBackground ? `background: ${pal.cardBackground};` : ''}
             overflow: hidden;
@@ -355,7 +361,7 @@ class EntityGroupCard extends HTMLElement {
     `;
 
     // Populate state-aware icons (can't be set via innerHTML string).
-    this.querySelectorAll('[data-icon]').forEach((holder) => {
+    this._root.querySelectorAll('[data-icon]').forEach((holder) => {
       const idx = Number(holder.getAttribute('data-icon'));
       const item = list[idx];
       if (!item) return;
@@ -373,11 +379,15 @@ class EntityGroupCard extends HTMLElement {
     });
 
     // Tap opens the more-info dialog, like native entity cards.
-    this.querySelectorAll('[data-entity]').forEach((el) => {
+    this._root.querySelectorAll('[data-entity]').forEach((el) => {
       el.addEventListener('click', () => {
-        const ev = new Event('hass-more-info', { bubbles: true, composed: true });
-        ev.detail = { entityId: el.getAttribute('data-entity') };
-        this.dispatchEvent(ev);
+        this.dispatchEvent(
+          new CustomEvent('hass-more-info', {
+            detail: { entityId: el.getAttribute('data-entity') },
+            bubbles: true,
+            composed: true,
+          })
+        );
       });
     });
   }
